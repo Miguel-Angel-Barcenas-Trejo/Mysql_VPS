@@ -4,17 +4,28 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv  # Importar dotenv
 
 # Cargar las variables de entorno desde el archivo .env
-load_dotenv()
+#load_dotenv()
 
-app = Flask(__name__)
+#app = Flask(__name__)
 
 # Configuración de la base de datos
-database_url = os.getenv('DATABASE_URL')
-print(f'DATABASE_URL: {database_url}')  # Imprimir la URL de la base de datos para verificación
+#database_url = os.getenv('DATABASE_URL')
+#print(f'DATABASE_URL: {database_url}')  # Imprimir la URL de la base de datos para verificación
 
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+#app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+#db = SQLAlchemy(app)
+# Cargar las variables de entorno desde el archivo .env 
+load_dotenv() 
+app = Flask(__name__) 
+# Configuración de la base de datos 
+database_url = os.getenv('DATABASE_URL') 
+# Asegurarse de que la URL de conexión utiliza el dialecto correcto 
+if database_url and database_url.startswith("postgres://"): database_url = database_url.replace("postgres://", "postgresql://", 1) 
+print(f'DATABASE_URL: {database_url}') # Imprimir la URL de la base de datos para verificación 
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url 
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
 db = SQLAlchemy(app)
 
 # Modelo de la base de datos
