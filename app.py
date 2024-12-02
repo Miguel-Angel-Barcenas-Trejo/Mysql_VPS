@@ -1,99 +1,63 @@
-import os
-from flask import Flask, request, jsonify, render_template, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
-from dotenv import load_dotenv  # Importar dotenv
+#from flask import Flask, request, jsonify
+#from flask_sqlalchemy import SQLAlchemy
+#from dotenv import load_dotenv
+#import os
 
-# Cargar las variables de entorno desde el archivo .env
+# Cargar variables de entorno
 #load_dotenv()
 
 #app = Flask(__name__)
 
-# Configuración de la base de datos
-#database_url = os.getenv('DATABASE_URL')
-#print(f'DATABASE_URL: {database_url}')  # Imprimir la URL de la base de datos para verificación
-
-#app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+# Configuración para conectarse a la base de datos
+#app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 #app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-#db = SQLAlchemy(app)
-# Cargar las variables de entorno desde el archivo .env 
-load_dotenv() 
-app = Flask(__name__) 
-# Configuración de la base de datos 
-database_url = os.getenv('DATABASE_URL') 
-# Asegurarse de que la URL de conexión utiliza el dialecto correcto 
-if database_url and database_url.startswith("postgres://"): database_url = database_url.replace("postgres://", "postgresql://", 1) 
-print(f'DATABASE_URL: {database_url}') # Imprimir la URL de la base de datos para verificación 
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url 
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
+from flask import Flask, jsonify
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+
+# Configuración de la base de datos
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:19590102Ferari@104.248.127.43:3309/estudiantes'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 db = SQLAlchemy(app)
 
-# Modelo de la base de datos
+# Modelo Estudiante
 class Estudiante(db.Model):
-    __tablename__ = 'alumnos'
-    __table_args__ = {'schema': 'cetech'}  # Especifica el esquema
-    no_control = db.Column(db.String, primary_key=True)
-    nombre = db.Column(db.String)
-    ap_paterno = db.Column(db.String)
-    ap_materno = db.Column(db.String)
-    semestre = db.Column(db.Integer)
+    __tablename__ = 'estudiante'
+    
+    no_control = db.Column(db.String(20), primary_key=True)  # Clave primaria
+    nombre = db.Column(db.String(100), nullable=False)
+    ap_paterno = db.Column(db.String(100), nullable=False)
+    ap_materno = db.Column(db.String(100), nullable=False)
+    semestre = db.Column(db.Integer, nullable=False)
 
-    def to_dict(self):
-        return {
-            'no_control': self.no_control,
-            'nombre': self.nombre,
-            'ap_paterno': self.ap_paterno,
-            'ap_materno': self.ap_materno,
-            'semestre': self.semestre
-        }
+    def __repr__(self):
+        return f"<Estudiante {self.no_control}>"
 
-# Rutas con vistas
+# Rutas
+@app.route('/estudiantes', methods=['GET'])
+def obtener_estudiantes():
+    try:
+        estudiantes = Estudiante.query.all()
+        resultado = [
+            {
+                "no_control": estudiante.no_control,
+                "nombre": estudiante.nombre,
+                "ap_paterno": estudiante.ap_paterno,
+                "ap_materno": estudiante.ap_materno,
+                "semestre": estudiante.semestre
+            } 
+            for estudiante in estudiantes
+        ]
+        return jsonify(resultado), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-# Mostrar todos los alumnos
-@app.route('/')
-def index():
-    alumnos = Estudiante.query.all()
-    return render_template('index.html', alumnos=alumnos)
-
-# Crear un nuevo estudiante (formulario)
-@app.route('/alumnos/new', methods=['GET', 'POST'])
-def create_estudiante():
-    if request.method == 'POST':
-        no_control = request.form['no_control']
-        nombre = request.form['nombre']
-        ap_paterno = request.form['ap_paterno']
-        ap_materno = request.form['ap_materno']
-        semestre = int(request.form['semestre'])
-
-        nuevo_estudiante = Estudiante(no_control=no_control, nombre=nombre, ap_paterno=ap_paterno, ap_materno=ap_materno, semestre=semestre)
-        db.session.add(nuevo_estudiante)
-        db.session.commit()
-
-        return redirect(url_for('index'))
-    return render_template('create_estudiante.html')
-
-# Actualizar un estudiante (formulario)
-@app.route('/alumnos/update/<string:no_control>', methods=['GET', 'POST'])
-def update_estudiante(no_control):
-    estudiante = Estudiante.query.get(no_control)
-    if request.method == 'POST':
-        estudiante.nombre = request.form['nombre']
-        estudiante.ap_paterno = request.form['ap_paterno']
-        estudiante.ap_materno = request.form['ap_materno']
-        estudiante.semestre = int(request.form['semestre'])
-        
-        db.session.commit()
-        return redirect(url_for('index'))
-    return render_template('update_estudiante.html', estudiante=estudiante)
-
-# Eliminar un estudiante
-@app.route('/alumnos/delete/<string:no_control>')
-def delete_estudiante(no_control):
-    estudiante = Estudiante.query.get(no_control)
-    if estudiante:
-        db.session.delete(estudiante)
-        db.session.commit()
-    return redirect(url_for('index'))
+# Inicializar la base de datos usando el evento got_first_request
+with app.app_context():
+    db.create_all()
 
 if __name__ == '__main__':
     app.run(debug=True)
